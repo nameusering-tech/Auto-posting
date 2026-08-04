@@ -8,7 +8,7 @@
       name="description"
       content="A small GitHub Pages compatible Web Share API proof of concept for image and caption sharing."
     >
-    <link rel="stylesheet" href="styles.css?v=20260804-media">
+    <link rel="stylesheet" href="styles.css?v=20260804-cloudinary">
   </head>
   <body>
     <main class="app-shell">
@@ -48,6 +48,100 @@
         <p class="status-message" id="status-message" role="status" aria-live="polite">
           Waiting for a media file.
         </p>
+      </section>
+
+      <section class="cloudinary-panel" aria-labelledby="cloudinary-title">
+        <div class="panel-header compact">
+          <p class="eyebrow">Automation</p>
+          <h2 id="cloudinary-title">Upload to Cloudinary</h2>
+          <p class="intro small">
+            Sends the selected media file to Cloudinary so Make can continue from Watch Uploaded Resources.
+          </p>
+        </div>
+
+        <form class="cloudinary-form" id="cloudinary-form">
+          <label class="field">
+            <span>Cloud name</span>
+            <input
+              id="cloudinary-cloud-name"
+              type="text"
+              autocomplete="off"
+              placeholder="your_cloud_name"
+            >
+          </label>
+
+          <label class="field">
+            <span>Unsigned upload preset</span>
+            <input
+              id="cloudinary-upload-preset"
+              type="text"
+              autocomplete="off"
+              placeholder="your_unsigned_preset"
+            >
+          </label>
+
+          <label class="field">
+            <span>Folder</span>
+            <input
+              id="cloudinary-folder"
+              type="text"
+              autocomplete="off"
+              placeholder="auto-posting-tests"
+            >
+          </label>
+
+          <label class="field">
+            <span>Tags</span>
+            <input
+              id="cloudinary-tags"
+              type="text"
+              autocomplete="off"
+              placeholder="web-share-poc,make-test"
+            >
+          </label>
+
+          <label class="field">
+            <span>Make webhook URL</span>
+            <input
+              id="make-webhook-url"
+              type="url"
+              autocomplete="off"
+              placeholder="https://hook.eu2.make.com/..."
+            >
+          </label>
+
+          <button class="primary-button" id="cloudinary-upload-button" type="submit">
+            Upload and trigger Make
+          </button>
+        </form>
+
+        <p class="status-message" id="cloudinary-status" role="status" aria-live="polite">
+          Cloudinary upload is waiting for a media file and preset.
+        </p>
+
+        <div class="upload-result" id="cloudinary-result" hidden>
+          <dl class="diagnostics-list">
+            <div>
+              <dt>resource type</dt>
+              <dd id="cloudinary-result-resource-type">-</dd>
+            </div>
+            <div>
+              <dt>public id</dt>
+              <dd id="cloudinary-result-public-id">-</dd>
+            </div>
+            <div>
+              <dt>secure URL</dt>
+              <dd id="cloudinary-result-url">-</dd>
+            </div>
+            <div>
+              <dt>Make webhook status</dt>
+              <dd id="make-result-status">Not sent</dd>
+            </div>
+          </dl>
+          <button class="secondary-button" id="copy-cloudinary-url-button" type="button">
+            Copy URL
+          </button>
+        </div>
       </section>
 
       <section class="fallback-panel" id="fallback-panel" aria-labelledby="fallback-title" hidden>
@@ -116,6 +210,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=20260804-media"></script>
+    <script src="app.js?v=20260804-cloudinary"></script>
   </body>
 </html>
