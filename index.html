@@ -15,16 +15,20 @@
       <section class="share-panel" aria-labelledby="app-title">
         <div class="panel-header">
           <p class="eyebrow">Web Share API</p>
-          <h1 id="app-title">Image share test</h1>
+          <h1 id="app-title">Media share test</h1>
           <p class="intro">
-            Select a JPG or PNG image, add a caption, and test native sharing support on this device.
+            Select an image or video, add a caption, and test native sharing support on this device.
           </p>
         </div>
 
         <form class="share-form" id="share-form">
           <label class="field">
-            <span>Image</span>
-            <input id="image-input" type="file" accept="image/jpeg,image/png">
+            <span>Media file</span>
+            <input
+              id="media-input"
+              type="file"
+              accept="image/jpeg,image/png,video/mp4,video/quicktime,video/webm,video/mpeg,video/ogg"
+            >
           </label>
 
           <label class="field">
@@ -42,7 +46,7 @@
         </form>
 
         <p class="status-message" id="status-message" role="status" aria-live="polite">
-          Waiting for an image.
+          Waiting for a media file.
         </p>
       </section>
 
@@ -53,15 +57,18 @@
         </div>
 
         <div class="preview-frame">
-          <img id="image-preview" alt="Selected image preview">
+          <img id="image-preview" alt="Selected image preview" hidden>
+          <video id="video-preview" controls playsinline hidden>
+            Your browser does not support video preview.
+          </video>
         </div>
 
         <div class="fallback-actions">
           <button class="secondary-button" id="copy-caption-button" type="button">
             Copy caption
           </button>
-          <a class="secondary-button" id="download-image-link" href="#" download>
-            Download image
+          <a class="secondary-button" id="download-media-link" href="#" download>
+            Download media
           </a>
         </div>
       </section>
@@ -83,7 +90,19 @@
           </div>
           <div>
             <dt>file sharing supported</dt>
-            <dd id="diag-file-share">Select an image</dd>
+            <dd id="diag-file-share">Select a media file</dd>
+          </div>
+          <div>
+            <dt>selected file type</dt>
+            <dd id="diag-file-type">Select a media file</dd>
+          </div>
+          <div>
+            <dt>selected file size</dt>
+            <dd id="diag-file-size">Select a media file</dd>
+          </div>
+          <div>
+            <dt>Chromium 50 MiB threshold</dt>
+            <dd id="diag-chromium-limit">Select a media file</dd>
           </div>
           <div>
             <dt>platform</dt>
