@@ -1,19 +1,34 @@
 (function () {
   "use strict";
 
+  const CHROMIUM_FILE_SHARE_LIMIT_BYTES = 50 * 1024 * 1024;
+  const SUPPORTED_MEDIA_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+    "video/mpeg",
+    "video/ogg",
+  ]);
+
   const shareForm = document.querySelector("#share-form");
-  const imageInput = document.querySelector("#image-input");
+  const mediaInput = document.querySelector("#media-input");
   const captionInput = document.querySelector("#caption-input");
   const statusMessage = document.querySelector("#status-message");
   const fallbackPanel = document.querySelector("#fallback-panel");
   const imagePreview = document.querySelector("#image-preview");
+  const videoPreview = document.querySelector("#video-preview");
   const copyCaptionButton = document.querySelector("#copy-caption-button");
-  const downloadImageLink = document.querySelector("#download-image-link");
+  const downloadMediaLink = document.querySelector("#download-media-link");
 
   const diagnostics = {
     share: document.querySelector("#diag-share"),
     canShare: document.querySelector("#diag-can-share"),
     fileShare: document.querySelector("#diag-file-share"),
+    fileType: document.querySelector("#diag-file-type"),
+    fileSize: document.querySelector("#diag-file-size"),
+    chromiumLimit: document.querySelector("#diag-chromium-limit"),
     platform: document.querySelector("#diag-platform"),
     userAgent: document.querySelector("#diag-user-agent"),
   };
@@ -45,12 +60,46 @@
     return value ? "Yes" : "No";
   }
 
-  function isSupportedImage(file) {
-    return file && (file.type === "image/jpeg" || file.type === "image/png");
+  function isSupportedMedia(file) {
+    return file && SUPPORTED_MEDIA_TYPES.has(file.type);
+  }
+
+  function isImage(file) {
+    return file && file.type.startsWith("image/");
+  }
+
+  function isVideo(file) {
+    return file && file.type.startsWith("video/");
+  }
+
+  function formatBytes(bytes) {
+    if (!Number.isFinite(bytes)) {
+      return "Unknown";
+    }
+
+    const mib = bytes / (1024 * 1024);
+    const mb = bytes / 1000 / 1000;
+    return `${mib.toFixed(2)} MiB (${mb.toFixed(2)} MB)`;
+  }
+
+  function getChromiumLimitStatus(file) {
+    if (!file) {
+      return "Select a media file";
+    }
+
+    if (isAboveChromiumLimit(file)) {
+      return "Above 50 MiB. Chrome/Edge may reject before opening share sheet.";
+    }
+
+    return "At or below 50 MiB.";
+  }
+
+  function isAboveChromiumLimit(file) {
+    return file && file.size > CHROMIUM_FILE_SHARE_LIMIT_BYTES;
   }
 
   function canShareSelectedFile(file) {
-    if (!navigator.canShare || !isSupportedImage(file)) {
+    if (!navigator.canShare || !isSupportedMedia(file)) {
       return false;
     }
 
@@ -71,7 +120,10 @@
 
     diagnostics.share.textContent = yesNo(shareSupported);
     diagnostics.canShare.textContent = yesNo(canShareSupported);
-    diagnostics.fileShare.textContent = file ? yesNo(fileSharingSupported) : "Select an image";
+    diagnostics.fileShare.textContent = file ? yesNo(fileSharingSupported) : "Select a media file";
+    diagnostics.fileType.textContent = file ? file.type || "Unknown" : "Select a media file";
+    diagnostics.fileSize.textContent = file ? formatBytes(file.size) : "Select a media file";
+    diagnostics.chromiumLimit.textContent = getChromiumLimitStatus(file);
     diagnostics.platform.textContent = platform;
     diagnostics.userAgent.textContent = userAgent;
 
@@ -109,9 +161,23 @@
     resetPreviewUrl();
     previewUrl = URL.createObjectURL(file);
 
-    imagePreview.src = previewUrl;
-    downloadImageLink.href = previewUrl;
-    downloadImageLink.download = file.name || "shared-image";
+    imagePreview.hidden = true;
+    videoPreview.hidden = true;
+    imagePreview.removeAttribute("src");
+    videoPreview.removeAttribute("src");
+
+    if (isVideo(file)) {
+      videoPreview.src = previewUrl;
+      videoPreview.hidden = false;
+      logStep("Video preview prepared");
+    } else {
+      imagePreview.src = previewUrl;
+      imagePreview.hidden = false;
+      logStep("Image preview prepared");
+    }
+
+    downloadMediaLink.href = previewUrl;
+    downloadMediaLink.download = file.name || "shared-media";
     fallbackPanel.hidden = false;
 
     logStep("Fallback displayed", {
@@ -124,8 +190,12 @@
   function hideFallback() {
     fallbackPanel.hidden = true;
     imagePreview.removeAttribute("src");
-    downloadImageLink.href = "#";
-    downloadImageLink.removeAttribute("download");
+    imagePreview.hidden = true;
+    videoPreview.pause();
+    videoPreview.removeAttribute("src");
+    videoPreview.hidden = true;
+    downloadMediaLink.href = "#";
+    downloadMediaLink.removeAttribute("download");
     resetPreviewUrl();
     logStep("Fallback hidden");
   }
@@ -157,13 +227,13 @@
     const caption = captionInput.value.trim();
 
     if (!selectedFile) {
-      setStatus("Choose a JPG or PNG image first.", "error");
+      setStatus("Choose an image or video file first.", "error");
       hideFallback();
       return;
     }
 
-    if (!isSupportedImage(selectedFile)) {
-      setStatus("Only JPG and PNG files are supported in this test.", "error");
+    if (!isSupportedMedia(selectedFile)) {
+      setStatus("This test supports JPG, PNG, MP4, MOV, WebM, MPEG, and OGG media.", "error");
       showFallback(selectedFile);
       return;
     }
@@ -175,6 +245,9 @@
       nativeShareSupported,
       fileShareSupported,
       captionLength: caption.length,
+      fileSize: selectedFile.size,
+      fileType: selectedFile.type,
+      chromiumLimitBytes: CHROMIUM_FILE_SHARE_LIMIT_BYTES,
     });
 
     if (nativeShareSupported && fileShareSupported) {
@@ -207,11 +280,11 @@
     showFallback(selectedFile);
   }
 
-  function handleImageSelection() {
-    const [file] = imageInput.files;
+  function handleMediaSelection() {
+    const [file] = mediaInput.files;
     selectedFile = file || null;
 
-    logStep("Image selection changed", selectedFile
+    logStep("Media selection changed", selectedFile
       ? {
           name: selectedFile.name,
           type: selectedFile.type,
@@ -222,23 +295,30 @@
     updateDiagnostics(selectedFile);
 
     if (!selectedFile) {
-      setStatus("Waiting for an image.");
+      setStatus("Waiting for a media file.");
       hideFallback();
       return;
     }
 
-    if (!isSupportedImage(selectedFile)) {
-      setStatus("This file is not a JPG or PNG. The fallback preview may still try to load it.", "error");
+    if (!isSupportedMedia(selectedFile)) {
+      setStatus("Unsupported MIME type. The fallback preview may still try to load it.", "error");
       showFallback(selectedFile);
       return;
     }
 
-    setStatus("Image selected. Press Share to test native sharing.");
+    if (isAboveChromiumLimit(selectedFile)) {
+      setStatus(
+        `${isVideo(selectedFile) ? "Video" : "Image"} selected, but it is above Chromium's 50 MiB threshold. Press Share to test real behavior.`
+      );
+    } else {
+      setStatus(`${isVideo(selectedFile) ? "Video" : "Image"} selected. Press Share to test native sharing.`);
+    }
+
     hideFallback();
   }
 
   window.addEventListener("beforeunload", resetPreviewUrl);
-  imageInput.addEventListener("change", handleImageSelection);
+  mediaInput.addEventListener("change", handleMediaSelection);
   shareForm.addEventListener("submit", handleShare);
   copyCaptionButton.addEventListener("click", copyCaption);
 
